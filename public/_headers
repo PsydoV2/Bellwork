@@ -1,0 +1,21 @@
+# Response headers for static hosts that read this file (Netlify, Cloudflare Pages).
+# The service worker must never be served stale, or updates would not roll out.
+/app-sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Security-Policy: default-src 'self'; script-src 'self'
+
+/app/manifest.webmanifest
+  Content-Type: application/manifest+json
+
+# metadata images are exported without a file extension
+/apple-icon
+  Content-Type: image/png
+/opengraph-image
+  Content-Type: image/png
+/app/opengraph-image
+  Content-Type: image/png
+/exercises/opengraph-image
+  Content-Type: image/png
+/exercises/*/opengraph-image
+  Content-Type: image/png

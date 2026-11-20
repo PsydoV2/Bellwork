@@ -2,6 +2,9 @@ import { EXERCISES, getExercise } from "@/lib/exercises";
 import { ExerciseFigure } from "@/lib/figure";
 import { keyPhase, ogImage, OG_SIZE } from "@/lib/og";
 
+// prerendered to a static file at build time (required for `output: "export"`)
+export const dynamic = "force-static";
+
 export const alt = `Kettlebell exercise guide – ${EXERCISES.length} animated exercises`;
 export const size = OG_SIZE;
 export const contentType = "image/png";

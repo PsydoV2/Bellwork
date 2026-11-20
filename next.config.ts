@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // fully static site: `next build` writes plain HTML/CSS/JS (+ prerendered icons, OG images, sitemap…) to ./out
+  output: "export",
+  // Cache Components / Partial Prefetching are request-time features with no effect in a static export
+  // (and they forbid the `dynamic = "force-static"` that exported route handlers need).
   turbopack: {
     rules: {
       "*.css": {
@@ -12,19 +13,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  async headers() {
-    return [
-      {
-        // the service worker must never be served stale, or updates would not roll out
-        source: "/app-sw.js",
-        headers: [
-          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
-        ],
-      },
-    ];
-  },
+  // Note: `headers()` is not supported with a static export. The service worker
+  // (/app-sw.js) must be served with `Cache-Control: no-cache` by the host – see public/_headers.
 };
 
 export default nextConfig;

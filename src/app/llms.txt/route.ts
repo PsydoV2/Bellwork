@@ -1,6 +1,9 @@
 import { CATEGORIES, EXERCISES, exerciseSlug, seoName } from "@/lib/exercises";
 import { abs, FAQ, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
+// prerendered to a static file at build time (required for `output: "export"`)
+export const dynamic = "force-static";
+
 /** llms.txt – a plain-text map of the site for AI answer engines (https://llmstxt.org). */
 export function GET() {
   const lines = [

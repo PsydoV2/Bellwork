@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_NAME } from "@/lib/site";
 
+// prerendered to a static file at build time (required for `output: "export"`)
+export const dynamic = "force-static";
+
 /**
  * Web app manifest for the installable app. It lives under /app and is only
  * linked from the /app layout, so the landing page and exercise guide are not

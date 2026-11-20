@@ -3,6 +3,9 @@ import { ExerciseFigure } from "@/lib/figure";
 import { C, keyPhase, ogImage, OG_SIZE } from "@/lib/og";
 import { SITE_NAME } from "@/lib/site";
 
+// prerendered to a static file at build time (required for `output: "export"`)
+export const dynamic = "force-static";
+
 export const alt = `${SITE_NAME} app – kettlebell workout planner and interval timer`;
 export const size = OG_SIZE;
 export const contentType = "image/png";
