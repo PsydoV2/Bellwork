@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* phones held sideways: little height, use a two-column layout */
+@custom-variant short {
+  @media (max-height: 540px) and (orientation: landscape) {
+    @slot;
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme static {
+  --color-bg: #0d0e10;
+  --color-surface: #16181b;
+  --color-surface-2: #1e2125;
+  --color-line: #2b2f35;
+  --color-ink: #f3f1ec;
+  --color-muted: #969ba3;
+  --color-accent: #ff6a2b;
+  --color-accent-strong: #ff8a50;
+  --color-rest: #3ecf8e;
+  --color-prep: #f5c542;
+  --color-danger: #ff5a5f;
+
+  --color-body: #c9c4bb;
+  --color-limb-r: #f4f1ea;
+  --color-limb-l: #6fa8ff;
+  --color-shadow: rgb(0 0 0 / 0.45);
+  --color-bell: #ff6a2b;
+  --color-bell-dark: #c9501b;
+  --color-bell-shine: rgb(255 255 255 / 0.35);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* exercise figure */
+.kb-r {
+  stroke: var(--color-limb-r);
+}
+.kb-l {
+  stroke: var(--color-limb-l);
+}
+.kb-outline {
+  stroke: var(--color-surface-2);
+}
+.kb-torso {
+  fill: var(--color-body);
+  stroke: var(--color-body);
+}
+.kb-torso-line {
+  stroke: var(--color-body);
+}
+.kb-head {
+  fill: var(--color-body);
+  stroke: var(--color-surface-2);
+  stroke-width: 2;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.3s ease-out both;
 }
