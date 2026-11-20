@@ -5,10 +5,10 @@
  * - App icons / manifest: stale-while-revalidate.
  * Bump VERSION to force a clean cache after breaking changes.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const PAGES = `kbc-pages-${VERSION}`;
 const STATIC = `kbc-static-${VERSION}`;
-const APP_URL = "/app";
+const APP_URL = "/app/";
 
 /** Collects the hashed /_next/static assets an HTML document references. */
 function assetsIn(html) {
@@ -75,7 +75,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // the app document itself
-  if (request.mode === "navigate" && (url.pathname === APP_URL || url.pathname === `${APP_URL}/`)) {
+  if (request.mode === "navigate" && (url.pathname === APP_URL || url.pathname === "/app")) {
     event.respondWith(
       (async () => {
         try {
@@ -107,7 +107,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // icons, manifest
-  if (url.pathname.startsWith(`${APP_URL}/`) && /\.(png|webmanifest)$|apple-icon/.test(url.pathname)) {
+  if (url.pathname.startsWith(APP_URL) && /\.(png|webmanifest)$|apple-icon/.test(url.pathname)) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(PAGES);

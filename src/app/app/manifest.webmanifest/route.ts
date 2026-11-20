@@ -15,7 +15,7 @@ export function GET() {
     name: SITE_NAME,
     short_name: SITE_NAME,
     description: "Plan kettlebell workouts and train with a voice-guided interval timer – works offline.",
-    start_url: "/app",
+    start_url: "/app/",
     scope: "/app",
     display: "standalone",
     orientation: "any",

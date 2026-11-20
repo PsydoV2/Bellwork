@@ -127,7 +127,7 @@ export async function decodePlans(code: string): Promise<SharedPlan[] | null> {
 }
 
 export async function shareUrl(plans: (WorkoutPlan | SharedPlan)[]): Promise<string> {
-  return `${window.location.origin}/app#${SHARE_PARAM}=${await encodePlans(plans)}`;
+  return `${window.location.origin}/app/#${SHARE_PARAM}=${await encodePlans(plans)}`;
 }
 
 /** Extracts the share code from a full link, a bare fragment ("#w=…") or the code itself. */
