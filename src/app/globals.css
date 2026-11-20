@@ -7,6 +7,13 @@
   }
 }
 
+/* running as an installed app (PWA) */
+@custom-variant standalone {
+  @media (display-mode: standalone) {
+    @slot;
+  }
+}
+
 @theme static {
   --color-bg: #0d0e10;
   --color-surface: #16181b;
