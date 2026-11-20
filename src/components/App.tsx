@@ -19,6 +19,7 @@ import { SITE_NAME } from "@/lib/site";
 import { ExerciseAnimation } from "./ExerciseAnimation";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { PlanEditor } from "./PlanEditor";
+import { ImportShared, SharePlanButton, useShareLink } from "./Sharing";
 import { WorkoutPlayer } from "./WorkoutPlayer";
 import { Icon } from "./ui";
 
@@ -101,6 +102,7 @@ function PlanCard({
         >
           <Icon.Edit />
         </button>
+        <SharePlanButton plan={plan} />
         <button
           onClick={() => duplicatePlan(plan.id)}
           className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink"
@@ -136,6 +138,9 @@ function PlanCard({
 export function App() {
   const plans = usePlans();
   const [view, setView] = useState<View>({ name: "home", tab: "plans" });
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const shareAll = useShareLink();
+  const importer = <ImportShared pasteOpen={pasteOpen} onClosePaste={() => setPasteOpen(false)} />;
 
   if (view.name === "edit") {
     return <PlanEditor initial={view.plan} onDone={() => setView({ name: "home", tab: "plans" })} />;
@@ -206,8 +211,12 @@ export function App() {
           >
             Create your first plan
           </button>
+          <button onClick={() => setPasteOpen(true)} className="mt-3 block mx-auto text-sm text-muted hover:text-ink">
+            …or import from a link
+          </button>
         </div>
       ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2">
           {plans.map((p) => (
             <PlanCard
@@ -221,7 +230,32 @@ export function App() {
             />
           ))}
         </div>
+        <div className="mt-8 rounded-3xl border border-line p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1 text-sm">
+            <div className="font-semibold">Use your plans on another device</div>
+            <div className="text-muted">
+              No account needed – your workouts travel inside the link. Open it on the other device to import.
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => shareAll.share(plans, `My ${SITE_NAME} workouts`)}
+              className="flex-1 sm:flex-none rounded-xl bg-surface-2 px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:text-ink"
+            >
+              <Icon.Share width={16} height={16} /> Share all
+            </button>
+            <button
+              onClick={() => setPasteOpen(true)}
+              className="flex-1 sm:flex-none rounded-xl bg-surface-2 px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:text-ink"
+            >
+              <Icon.Import width={16} height={16} /> Paste link
+            </button>
+          </div>
+        </div>
+        </>
       )}
+      {shareAll.dialog}
+      {importer}
     </div>
   );
 }

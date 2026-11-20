@@ -104,6 +104,18 @@ export const Icon = {
       <path d="M5 12l5 5 9-10" />
     </svg>
   ),
+  Share: (p: IconProps) => (
+    <svg {...base(p)}>
+      <path d="M12 15V4M8 8l4-4 4 4" />
+      <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+    </svg>
+  ),
+  Import: (p: IconProps) => (
+    <svg {...base(p)}>
+      <path d="M12 4v11M8 11l4 4 4-4" />
+      <path d="M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4" />
+    </svg>
+  ),
   Info: (p: IconProps) => (
     <svg {...base(p)}>
       <circle cx="12" cy="12" r="9" />

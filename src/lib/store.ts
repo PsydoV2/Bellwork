@@ -237,6 +237,14 @@ export function upsertPlan(plan: WorkoutPlan) {
   write(exists ? plans.map((p) => (p.id === plan.id ? plan : p)) : [...plans, plan]);
 }
 
+export function getPlans(): WorkoutPlan[] {
+  return read();
+}
+
+export function addPlans(plans: WorkoutPlan[]) {
+  if (plans.length) write([...read(), ...plans]);
+}
+
 export function deletePlan(id: string) {
   write(read().filter((p) => p.id !== id));
 }
