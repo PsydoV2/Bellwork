@@ -1,8 +1,8 @@
 import { EXERCISES } from "./exercises";
 
 /** Public origin of the site, used for canonical URLs, the sitemap and structured data. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-export const SITE_NAME = "Kettlebell Coach";
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://bellwork.sfalter.de").replace(/\/$/, "");
+export const SITE_NAME = "Bellwork";
 export const SITE_TAGLINE = "Free kettlebell workout planner & timer";
 export const SITE_DESCRIPTION = `Free kettlebell workout planner and interval timer with ${EXERCISES.length} animated exercise demos. Build fixed-round or AMRAP circuits, choose one-arm, two-hand or double-kettlebell variants, and train with voice cues – no sign-up.`;
 
@@ -11,8 +11,8 @@ export const abs = (path: string) => `${SITE_URL}${path.startsWith("/") ? path :
 /** Questions people (and answer engines) ask – rendered on the landing page and as FAQPage JSON-LD. */
 export const FAQ: { q: string; a: string }[] = [
   {
-    q: "Is Kettlebell Coach free?",
-    a: "Yes. Kettlebell Coach is completely free and needs no account. Your workout plans and results are saved locally in your browser, so nothing is uploaded and you can start training right away.",
+    q: "Is Bellwork free?",
+    a: "Yes. Bellwork is completely free and needs no account. Your workout plans and results are saved locally in your browser, so nothing is uploaded and you can start training right away.",
   },
   {
     q: "What is a kettlebell AMRAP workout?",
@@ -28,7 +28,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What is the difference between one-arm, two-hand and double kettlebell exercises?",
-    a: "One-arm exercises load one side, so your core has to resist rotation and you train each side separately. Two-hand versions hold one bell with both hands, which is easier to balance and lets beginners lift more. Double-kettlebell versions use a bell in each hand for the heaviest total load. Many exercises in Kettlebell Coach can be switched between these grips.",
+    a: "One-arm exercises load one side, so your core has to resist rotation and you train each side separately. Two-hand versions hold one bell with both hands, which is easier to balance and lets beginners lift more. Double-kettlebell versions use a bell in each hand for the heaviest total load. Many exercises in Bellwork can be switched between these grips.",
   },
   {
     q: "How long should a kettlebell workout be?",
@@ -44,7 +44,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Does the app work on my phone?",
-    a: "Yes. Kettlebell Coach runs in any modern mobile or desktop browser. During a workout it keeps the screen awake, counts down every timed set with beeps and announces the next exercise by voice.",
+    a: "Yes. Bellwork runs in any modern mobile or desktop browser. During a workout it keeps the screen awake, counts down every timed set with beeps and announces the next exercise by voice.",
   },
 ];
 

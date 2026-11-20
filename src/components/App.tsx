@@ -15,6 +15,7 @@ import {
   type WorkoutPlan,
 } from "@/lib/store";
 import { unlockAudio } from "@/lib/audio";
+import { SITE_NAME } from "@/lib/site";
 import { ExerciseAnimation } from "./ExerciseAnimation";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { PlanEditor } from "./PlanEditor";
@@ -147,10 +148,10 @@ export function App() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-16">
       <header className="flex items-center gap-3 pt-6 pb-6 sm:pt-10">
-        <Link href="/" className="flex flex-1 items-center gap-3 standalone:pointer-events-none" aria-label="Kettlebell Coach home">
+        <Link href="/" className="flex flex-1 items-center gap-3 standalone:pointer-events-none" aria-label={`${SITE_NAME} home`}>
           <KettlebellLogo />
           <div>
-            <div className="text-xl font-bold tracking-tight">Kettlebell Coach</div>
+            <div className="text-xl font-bold tracking-tight">{SITE_NAME}</div>
             <div className="text-xs text-muted">Plan. Swing. Repeat.</div>
           </div>
         </Link>

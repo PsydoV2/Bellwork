@@ -8,7 +8,7 @@ export function GET() {
     "",
     `> ${SITE_DESCRIPTION}`,
     "",
-    "Kettlebell Coach is a free browser app (no account) for planning and running kettlebell workouts.",
+    `${SITE_NAME} is a free browser app (no account) for planning and running kettlebell workouts.`,
     "Workouts can be fixed rounds (rest after every exercise, longer break between rounds) or AMRAP",
     "(as many rounds as possible: a fixed circuit repeated back-to-back until a time cap, with a short",
     "break only when the circuit starts over). Many exercises can be switched between one-arm, two-hand",

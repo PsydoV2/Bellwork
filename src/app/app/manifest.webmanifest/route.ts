@@ -10,7 +10,7 @@ export function GET() {
   const manifest: MetadataRoute.Manifest = {
     id: "/app",
     name: SITE_NAME,
-    short_name: "KB Coach",
+    short_name: SITE_NAME,
     description: "Plan kettlebell workouts and train with a voice-guided interval timer – works offline.",
     start_url: "/app",
     scope: "/app",

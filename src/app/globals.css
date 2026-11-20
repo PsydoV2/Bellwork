@@ -50,29 +50,6 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* exercise figure */
-.kb-r {
-  stroke: var(--color-limb-r);
-}
-.kb-l {
-  stroke: var(--color-limb-l);
-}
-.kb-outline {
-  stroke: var(--color-surface-2);
-}
-.kb-torso {
-  fill: var(--color-body);
-  stroke: var(--color-body);
-}
-.kb-torso-line {
-  stroke: var(--color-body);
-}
-.kb-head {
-  fill: var(--color-body);
-  stroke: var(--color-surface-2);
-  stroke-width: 2;
-}
-
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
