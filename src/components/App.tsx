@@ -50,7 +50,7 @@ function PlanCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const exercises = plan.items.map((i) => getExercise(i.exerciseId));
   return (
-    <div className="animate-fade-up rounded-3xl bg-surface border border-line p-4 sm:p-5 flex flex-col gap-4">
+    <div className="animate-fade-up min-w-0 rounded-3xl bg-surface border border-line p-4 sm:p-5 flex flex-col gap-4">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold leading-tight">{plan.name}</h3>
@@ -87,16 +87,17 @@ function PlanCard({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* phone: full-width Start, then a row of equal icon buttons; sm+: everything in one row */}
+      <div className="grid grid-cols-4 gap-2 sm:flex sm:items-center">
         <button
           onClick={onStart}
-          className="flex-1 rounded-xl bg-accent hover:bg-accent-strong text-black py-3 font-semibold flex items-center justify-center gap-2 transition-colors"
+          className="col-span-4 sm:flex-1 rounded-xl bg-accent hover:bg-accent-strong text-black py-3 font-semibold flex items-center justify-center gap-2 transition-colors"
         >
           <Icon.Play width={18} height={18} /> Start workout
         </button>
         <button
           onClick={onEdit}
-          className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink"
+          className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink flex justify-center"
           aria-label="Edit"
           title="Edit"
         >
@@ -105,7 +106,7 @@ function PlanCard({
         <SharePlanButton plan={plan} />
         <button
           onClick={() => duplicatePlan(plan.id)}
-          className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink"
+          className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink flex justify-center"
           aria-label="Duplicate"
           title="Duplicate"
         >
@@ -116,14 +117,14 @@ function PlanCard({
             onClick={() => deletePlan(plan.id)}
             onBlur={() => setConfirmDelete(false)}
             autoFocus
-            className="px-3 py-3 rounded-xl bg-danger text-black text-sm font-semibold"
+            className="px-3 py-3 rounded-xl bg-danger text-black text-sm font-semibold whitespace-nowrap"
           >
             Delete?
           </button>
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="p-3 rounded-xl bg-surface-2 text-muted hover:text-danger"
+            className="p-3 rounded-xl bg-surface-2 text-muted hover:text-danger flex justify-center"
             aria-label="Delete"
             title="Delete"
           >
@@ -166,7 +167,7 @@ export function App() {
       </header>
 
       <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="inline-flex rounded-full bg-surface border border-line p-1">
+        <div className="inline-flex shrink-0 rounded-full bg-surface border border-line p-1">
           {(
             [
               ["plans", "My plans"],
@@ -176,7 +177,7 @@ export function App() {
             <button
               key={t}
               onClick={() => setView({ name: "home", tab: t })}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-full px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t ? "bg-ink text-bg" : "text-muted hover:text-ink"
               }`}
             >
@@ -187,7 +188,7 @@ export function App() {
         {tab === "plans" && (
           <button
             onClick={() => setView({ name: "edit", plan: newPlan() })}
-            className="rounded-full bg-accent hover:bg-accent-strong text-black pl-3 pr-4 py-2 text-sm font-semibold flex items-center gap-1.5"
+            className="shrink-0 whitespace-nowrap rounded-full bg-accent hover:bg-accent-strong text-black pl-3 pr-4 py-2 text-sm font-semibold flex items-center gap-1.5"
           >
             <Icon.Plus width={18} height={18} /> New plan
           </button>
@@ -197,7 +198,7 @@ export function App() {
       {tab === "library" ? (
         <ExerciseLibrary />
       ) : plans === null ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1].map((i) => (
             <div key={i} className="h-64 rounded-3xl bg-surface border border-line animate-pulse" />
           ))}
@@ -217,7 +218,7 @@ export function App() {
         </div>
       ) : (
         <>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {plans.map((p) => (
             <PlanCard
               key={p.id}

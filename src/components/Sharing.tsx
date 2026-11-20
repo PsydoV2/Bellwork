@@ -119,7 +119,7 @@ export function SharePlanButton({ plan }: { plan: WorkoutPlan }) {
     <>
       <button
         onClick={() => share([plan], plan.name)}
-        className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink"
+        className="p-3 rounded-xl bg-surface-2 text-muted hover:text-ink flex justify-center"
         aria-label="Share"
         title="Share"
       >
