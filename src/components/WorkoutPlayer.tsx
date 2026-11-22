@@ -1,123 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { getExercise, usesTwoBells, type Exercise } from "@/lib/exercises";
+import { usesTwoBells } from "@/lib/exercises";
 import {
   DEFAULT_TIME_CAP,
   formatDuration,
   formatResult,
   isAmrap,
-  markCompleted,
-  type AmrapResult,
-  type WorkoutItem,
+  isBetterResult,
+  uid,
   type WorkoutPlan,
 } from "@/lib/store";
+import {
+  addSession,
+  bestResultFor,
+  updateSessionResult,
+  useHistory,
+  type SessionStatus,
+  type WorkoutSession,
+} from "@/lib/history";
+import { buildSteps, initialState, makeReducer, summarize, type Side, type Step } from "@/lib/workout";
 import { beep, speak, unlockAudio } from "@/lib/audio";
 import { ExerciseAnimation } from "./ExerciseAnimation";
 import { Icon } from "./ui";
-
-type Side = "right" | "left";
-type Step =
-  | { kind: "prepare"; duration: number; next: Exercise; nextSide?: Side }
-  | {
-      kind: "work";
-      exercise: Exercise;
-      item: WorkoutItem;
-      side?: Side;
-      round: number;
-      duration?: number;
-      /** true on the last side of the exercise – the exercise is finished after this step */
-      itemDone: boolean;
-    }
-  | { kind: "rest"; duration: number; round: number; next: Exercise; nextSide?: Side; roundBreak: boolean };
-
-/** Upper bound of generated rounds for AMRAP plans – the time cap ends the workout long before. */
-const AMRAP_MAX_ROUNDS = 200;
-
-function buildSteps(plan: WorkoutPlan): Step[] {
-  const steps: Step[] = [];
-  if (plan.items.length === 0) return steps;
-  const amrap = isAmrap(plan);
-  const rounds = amrap ? AMRAP_MAX_ROUNDS : plan.rounds;
-  const first = getExercise(plan.items[0].exerciseId);
-  steps.push({ kind: "prepare", duration: 10, next: first, nextSide: first.unilateral ? "right" : undefined });
-  for (let r = 1; r <= rounds; r++) {
-    plan.items.forEach((item, i) => {
-      const exercise = getExercise(item.exerciseId);
-      const duration = item.mode === "time" ? item.duration : undefined;
-      const sides: (Side | undefined)[] = exercise.unilateral ? ["right", "left"] : [undefined];
-      sides.forEach((side, si) =>
-        steps.push({ kind: "work", exercise, item, side, round: r, duration, itemDone: si === sides.length - 1 }),
-      );
-      const lastInRound = i === plan.items.length - 1;
-      if (lastInRound && r === rounds) return;
-      const nextItem = lastInRound ? plan.items[0] : plan.items[i + 1];
-      const next = getExercise(nextItem.exerciseId);
-      // AMRAP: straight from one exercise into the next, a short break only when the circuit starts over
-      const rest = amrap ? (lastInRound ? plan.roundRest : 0) : lastInRound ? item.rest + plan.roundRest : item.rest;
-      if (rest > 0) {
-        steps.push({
-          kind: "rest",
-          duration: rest,
-          round: r,
-          next,
-          nextSide: next.unilateral ? "right" : undefined,
-          roundBreak: lastInRound,
-        });
-      }
-    });
-  }
-  return steps;
-}
-
-interface State {
-  index: number;
-  remaining: number;
-  stepElapsed: number;
-  total: number;
-  /** seconds counted against the AMRAP time cap (excludes the get-ready countdown) */
-  capElapsed: number;
-  timeUp: boolean;
-  running: boolean;
-}
-
-type Action = { type: "tick"; dt: number } | { type: "goto"; index: number } | { type: "toggle" };
-
-function makeReducer(steps: Step[], cap: number) {
-  const durationOf = (i: number) => {
-    const s = steps[i];
-    return s && "duration" in s && s.duration ? s.duration : 0;
-  };
-  return (state: State, action: Action): State => {
-    switch (action.type) {
-      case "toggle":
-        return { ...state, running: !state.running };
-      case "goto": {
-        const index = Math.max(0, Math.min(steps.length, action.index));
-        return { ...state, index, remaining: durationOf(index), stepElapsed: 0 };
-      }
-      case "tick": {
-        if (!state.running || state.index >= steps.length) return state;
-        const total = state.total + action.dt;
-        const stepElapsed = state.stepElapsed + action.dt;
-        const counting = cap > 0 && steps[state.index].kind !== "prepare";
-        const capElapsed = state.capElapsed + (counting ? action.dt : 0);
-        if (counting && capElapsed >= cap) {
-          return { ...state, total, capElapsed: cap, index: steps.length, remaining: 0, timeUp: true };
-        }
-        if (durationOf(state.index) > 0) {
-          const remaining = state.remaining - action.dt;
-          if (remaining <= 0) {
-            const index = state.index + 1;
-            return { ...state, total, capElapsed, index, remaining: durationOf(index), stepElapsed: 0 };
-          }
-          return { ...state, total, capElapsed, remaining, stepElapsed };
-        }
-        return { ...state, total, capElapsed, stepElapsed };
-      }
-    }
-  };
-}
 
 function Ring({
   progress,
@@ -178,6 +83,8 @@ function useWakeLock(active: boolean) {
   }, [active]);
 }
 
+const MAX_ROUNDS_EDIT = 999;
+
 const sideLabel = (s?: Side) => (s ? (s === "right" ? "Right side" : "Left side") : "");
 
 export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () => void }) {
@@ -185,15 +92,15 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
   const cap = amrap ? (plan.timeCap ?? DEFAULT_TIME_CAP) : 0;
   const steps = useMemo(() => buildSteps(plan), [plan]);
   const reducer = useMemo(() => makeReducer(steps, cap), [steps, cap]);
-  const [state, dispatch] = useReducer(reducer, {
-    index: 0,
-    remaining: steps[0] && "duration" in steps[0] ? (steps[0].duration ?? 0) : 0,
-    stepElapsed: 0,
-    total: 0,
-    capElapsed: 0,
-    timeUp: false,
-    running: true,
-  });
+  const [state, dispatch] = useReducer(reducer, steps, initialState);
+  const history = useHistory();
+  /** AMRAP: result as corrected by the user on the summary screen */
+  const [final, setFinal] = useState<{ rounds: number; extra: number } | null>(null);
+  const startedAt = useRef(0);
+  const [sessionId] = useState(() => uid());
+  useEffect(() => {
+    startedAt.current = Date.now();
+  }, []);
   const [sound, setSound] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   /** phone only: technique cues shown as an overlay on the animation */
@@ -215,9 +122,24 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
     return () => window.clearInterval(id);
   }, []);
 
-  const doneItems = steps.slice(0, state.index).filter((s) => s.kind === "work" && s.itemDone).length;
-  const perRound = Math.max(1, plan.items.length);
-  const result: Omit<AmrapResult, "at"> = { rounds: Math.floor(doneItems / perRound), extra: doneItems % perRound };
+  const summary = summarize(steps, state, plan.items.length);
+  const tracked = { rounds: summary.rounds, extra: summary.extra };
+  const buildSession = (status: SessionStatus): WorkoutSession => ({
+    id: sessionId,
+    planId: plan.id,
+    planName: plan.name || "Untitled workout",
+    format: amrap ? "amrap" : "rounds",
+    startedAt: startedAt.current || Date.now(),
+    endedAt: Date.now(),
+    duration: state.total,
+    status,
+    sets: summary.sets,
+    rounds: amrap || status === "aborted" ? summary.rounds : plan.rounds,
+    roundsPlanned: amrap ? undefined : plan.rounds,
+    timeCap: amrap ? cap : undefined,
+    result: amrap ? tracked : undefined,
+    tracked: amrap ? tracked : undefined,
+  });
   const capSecLeft = Math.ceil(cap - state.capElapsed);
 
   const secLeft = Math.ceil(state.remaining);
@@ -239,7 +161,7 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
     if (finished) {
       beep(880, 180);
       setTimeout(() => beep(1175, 300), 200);
-      speak(state.timeUp ? `Time! ${formatResult({ ...result, at: 0 })}.` : "Done! Great workout.");
+      speak(state.timeUp ? `Time! ${formatResult(tracked)}.` : "Done! Great workout.");
       return;
     }
     if (!step) return;
@@ -260,30 +182,34 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
   useEffect(() => {
     if (finished && !completed.current) {
       completed.current = true;
-      markCompleted(plan.id, amrap ? result : undefined);
+      addSession(buildSession(state.timeUp ? "timeUp" : "completed"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- record the result at the moment the workout ends
   }, [finished, plan.id, amrap]);
 
   const goto = (i: number) => dispatch({ type: "goto", index: i });
   const workSteps = steps.filter((s) => s.kind === "work").length;
-  const doneWork = steps.slice(0, state.index).filter((s) => s.kind === "work").length;
+  const doneWork = summary.sets;
 
   if (finished) {
-    const prevBest = plan.bestResult;
-    const newBest =
-      amrap &&
-      (!prevBest || result.rounds > prevBest.rounds || (result.rounds === prevBest.rounds && result.extra > prevBest.extra));
+    const shown = final ?? tracked;
+    const prevBest = history ? bestResultFor(plan, history, sessionId) : plan.bestResult;
+    const newBest = amrap && (shown.rounds > 0 || shown.extra > 0) && isBetterResult(shown, prevBest);
+    const change = (r: { rounds: number; extra: number }) => {
+      setFinal(r);
+      updateSessionResult(sessionId, r);
+    };
+    const maxExtra = Math.max(0, plan.items.length - 1);
     const stats: [string, string][] = amrap
       ? [
           ["Time", formatDuration(cap)],
-          ["Rounds", `${result.rounds}${result.extra ? ` + ${result.extra}` : ""}`],
-          ["Sets", String(steps.slice(0, state.index).filter((s) => s.kind === "work").length)],
+          ["Rounds", `${shown.rounds}${shown.extra ? ` + ${shown.extra}` : ""}`],
+          ["Sets", String(summary.sets)],
         ]
       : [
           ["Time", formatDuration(state.total)],
           ["Rounds", String(plan.rounds)],
-          ["Sets", String(workSteps)],
+          ["Sets", String(summary.sets)],
         ];
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center animate-fade-up">
@@ -303,12 +229,74 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
         )}
         <div className="mt-8 grid grid-cols-3 gap-3 w-full max-w-md">
           {stats.map(([k, v]) => (
-            <div key={k} className="rounded-2xl bg-surface border border-line p-4">
-              <div className="font-mono text-2xl font-semibold">{v}</div>
+            <div key={k} className="rounded-2xl bg-surface border border-line p-2.5 sm:p-4 min-w-0">
+              <div className="font-mono text-lg sm:text-2xl font-semibold leading-tight break-words">{v}</div>
               <div className="text-xs text-muted mt-1">{k}</div>
             </div>
           ))}
         </div>
+        {amrap && (
+          <div className="mt-6 w-full max-w-md">
+            <div className="text-sm font-semibold mb-2">Your result</div>
+            <div className="grid grid-cols-2 gap-3 w-full">
+              {(
+                [
+                  {
+                    label: "Rounds",
+                    value: shown.rounds,
+                    canDec: shown.rounds > 0,
+                    canInc: shown.rounds < MAX_ROUNDS_EDIT,
+                    dec: () => change({ ...shown, rounds: shown.rounds - 1 }),
+                    inc: () => change({ ...shown, rounds: shown.rounds + 1 }),
+                  },
+                  {
+                    label: "+ exercises",
+                    value: shown.extra,
+                    // stepping past the ends carries over into the round count
+                    canDec: maxExtra > 0 && (shown.extra > 0 || shown.rounds > 0),
+                    canInc: maxExtra > 0 && (shown.extra < maxExtra || shown.rounds < MAX_ROUNDS_EDIT),
+                    dec: () =>
+                      change(
+                        shown.extra > 0
+                          ? { ...shown, extra: shown.extra - 1 }
+                          : { rounds: shown.rounds - 1, extra: maxExtra },
+                      ),
+                    inc: () =>
+                      change(
+                        shown.extra < maxExtra
+                          ? { ...shown, extra: shown.extra + 1 }
+                          : { rounds: shown.rounds + 1, extra: 0 },
+                      ),
+                  },
+                ] as const
+              ).map((c) => (
+                <div key={c.label} className="rounded-2xl bg-surface border border-line p-2 sm:p-3 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <button
+                      onClick={c.dec}
+                      disabled={!c.canDec}
+                      className="h-9 w-9 sm:h-11 sm:w-11 shrink-0 rounded-full bg-surface-2 text-xl disabled:opacity-30"
+                      aria-label={`Decrease ${c.label}`}
+                    >
+                      −
+                    </button>
+                    <span className="min-w-0 font-mono text-xl sm:text-2xl font-semibold tabular-nums">{c.value}</span>
+                    <button
+                      onClick={c.inc}
+                      disabled={!c.canInc}
+                      className="h-9 w-9 sm:h-11 sm:w-11 shrink-0 rounded-full bg-surface-2 text-xl disabled:opacity-30"
+                      aria-label={`Increase ${c.label}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="text-xs text-muted mt-1">{c.label}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">Counted from your taps – adjust if it’s off.</p>
+          </div>
+        )}
         <button
           onClick={onExit}
           className="mt-10 rounded-xl bg-accent hover:bg-accent-strong text-black px-8 py-3.5 font-semibold"
@@ -550,7 +538,9 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center px-6">
           <div className="animate-fade-up w-full max-w-sm rounded-3xl bg-surface border border-line p-6 text-center">
             <h2 className="text-lg font-semibold">End workout?</h2>
-            <p className="mt-2 text-sm text-muted">Your progress in this workout will be lost.</p>
+            <p className="mt-2 text-sm text-muted">
+              {summary.sets > 0 ? "Finished sets are saved to your history." : "Your progress in this workout will be lost."}
+            </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button onClick={() => setConfirmExit(false)} className="rounded-xl bg-surface-2 py-3 font-medium hover:bg-line">
                 Keep going
@@ -558,6 +548,7 @@ export function WorkoutPlayer({ plan, onExit }: { plan: WorkoutPlan; onExit: () 
               <button
                 onClick={() => {
                   window.speechSynthesis?.cancel();
+                  if (!completed.current && summary.sets > 0) addSession(buildSession("aborted"));
                   onExit();
                 }}
                 className="rounded-xl bg-danger/90 hover:bg-danger text-black py-3 font-semibold"

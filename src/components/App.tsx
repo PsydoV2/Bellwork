@@ -14,17 +14,19 @@ import {
   usePlans,
   type WorkoutPlan,
 } from "@/lib/store";
+import { bestResultFor, completionStatsFor, useHistory } from "@/lib/history";
 import { unlockAudio } from "@/lib/audio";
 import { SITE_NAME } from "@/lib/site";
 import { ExerciseAnimation } from "./ExerciseAnimation";
 import { ExerciseLibrary } from "./ExerciseLibrary";
+import { HistoryView } from "./History";
 import { PlanEditor } from "./PlanEditor";
 import { ImportShared, SharePlanButton, useShareLink } from "./Sharing";
 import { WorkoutPlayer } from "./WorkoutPlayer";
 import { Icon } from "./ui";
 
 type View =
-  | { name: "home"; tab: "plans" | "library" }
+  | { name: "home"; tab: "plans" | "library" | "history" }
   | { name: "edit"; plan: WorkoutPlan }
   | { name: "play"; plan: WorkoutPlan };
 
@@ -40,10 +42,14 @@ function KettlebellLogo() {
 
 function PlanCard({
   plan,
+  best,
+  done,
   onStart,
   onEdit,
 }: {
   plan: WorkoutPlan;
+  best?: { rounds: number; extra: number };
+  done: { count: number; last?: number };
   onStart: () => void;
   onEdit: () => void;
 }) {
@@ -66,11 +72,11 @@ function PlanCard({
               {formatDuration(estimateSeconds(plan) - (isAmrap(plan) ? 10 : 0))} min
             </span>
           </div>
-          {plan.timesCompleted ? (
+          {done.count ? (
             <div className="mt-1 text-xs text-rest">
-              {plan.timesCompleted}× completed
-              {plan.lastCompletedAt && ` · last ${new Date(plan.lastCompletedAt).toLocaleDateString("en-GB")}`}
-              {plan.bestResult && ` · best ${formatResult(plan.bestResult)}`}
+              {done.count}× completed
+              {done.last && ` · last ${new Date(done.last).toLocaleDateString("en-GB")}`}
+              {best && ` · best ${formatResult(best)}`}
             </div>
           ) : null}
         </div>
@@ -138,6 +144,7 @@ function PlanCard({
 
 export function App() {
   const plans = usePlans();
+  const history = useHistory();
   const [view, setView] = useState<View>({ name: "home", tab: "plans" });
   const [pasteOpen, setPasteOpen] = useState(false);
   const shareAll = useShareLink();
@@ -166,18 +173,19 @@ export function App() {
         </Link>
       </header>
 
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="inline-flex shrink-0 rounded-full bg-surface border border-line p-1">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 mb-6">
+        <div className="inline-flex min-w-0 overflow-x-auto rounded-full bg-surface border border-line p-1">
           {(
             [
               ["plans", "My plans"],
               ["library", "Exercises"],
+              ["history", "History"],
             ] as const
           ).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setView({ name: "home", tab: t })}
-              className={`whitespace-nowrap rounded-full px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-full px-2.5 sm:px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t ? "bg-ink text-bg" : "text-muted hover:text-ink"
               }`}
             >
@@ -188,15 +196,18 @@ export function App() {
         {tab === "plans" && (
           <button
             onClick={() => setView({ name: "edit", plan: newPlan() })}
-            className="shrink-0 whitespace-nowrap rounded-full bg-accent hover:bg-accent-strong text-black pl-3 pr-4 py-2 text-sm font-semibold flex items-center gap-1.5"
+            className="shrink-0 whitespace-nowrap rounded-full bg-accent hover:bg-accent-strong text-black p-2 sm:pl-3 sm:pr-4 sm:py-2 text-sm font-semibold flex items-center gap-1.5"
+            aria-label="New plan"
           >
-            <Icon.Plus width={18} height={18} /> New plan
+            <Icon.Plus width={18} height={18} /> <span className="hidden sm:inline">New plan</span>
           </button>
         )}
       </div>
 
       {tab === "library" ? (
         <ExerciseLibrary />
+      ) : tab === "history" ? (
+        <HistoryView />
       ) : plans === null ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1].map((i) => (
@@ -223,6 +234,8 @@ export function App() {
             <PlanCard
               key={p.id}
               plan={p}
+              best={history ? bestResultFor(p, history) : p.bestResult}
+              done={completionStatsFor(p, history ?? [])}
               onEdit={() => setView({ name: "edit", plan: p })}
               onStart={() => {
                 unlockAudio();

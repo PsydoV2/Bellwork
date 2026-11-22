@@ -41,20 +41,28 @@ export interface WorkoutPlan {
   timeCap?: number;
   items: WorkoutItem[];
   createdAt: number;
+  /** legacy (pre-history), frozen – completions now come from history.ts (completionStatsFor) */
   lastCompletedAt?: number;
+  /** legacy (pre-history), frozen – completions now come from history.ts (completionStatsFor) */
   timesCompleted?: number;
+  /** legacy (pre-history) – results now live in history.ts */
   lastResult?: AmrapResult;
+  /** legacy (pre-history) – results now live in history.ts */
   bestResult?: AmrapResult;
 }
 
 export const isAmrap = (p: WorkoutPlan) => p.format === "amrap";
 export const DEFAULT_TIME_CAP = 15 * 60;
 
-export function formatResult(r: AmrapResult): string {
+/** Upper bound of generated rounds for AMRAP plans – the time cap ends the workout long before. */
+export const AMRAP_MAX_ROUNDS = 200;
+
+export function formatResult(r: Pick<AmrapResult, "rounds" | "extra">): string {
   return `${r.rounds} round${r.rounds === 1 ? "" : "s"}${r.extra ? ` + ${r.extra}` : ""}`;
 }
 
-const better = (a: AmrapResult, b?: AmrapResult) => !b || a.rounds > b.rounds || (a.rounds === b.rounds && a.extra > b.extra);
+export const isBetterResult = (a: Pick<AmrapResult, "rounds" | "extra">, b?: Pick<AmrapResult, "rounds" | "extra">) =>
+  !b || a.rounds > b.rounds || (a.rounds === b.rounds && a.extra > b.extra);
 
 /** Assumed seconds per repetition, used for time estimates. */
 export const SECONDS_PER_REP = 3;
@@ -181,6 +189,21 @@ const ORIGINAL_SEEDS = ["starter", "swing-hiit", "strength", "core"];
 let cache: WorkoutPlan[] | null = null;
 const listeners = new Set<() => void>();
 
+/** Drops results from the old AMRAP bug (all 200 pre-generated rounds were counted). */
+export function sanitizePlans(plans: WorkoutPlan[]): { plans: WorkoutPlan[]; changed: boolean } {
+  let changed = false;
+  const bad = (r?: AmrapResult) => !!r && r.rounds >= AMRAP_MAX_ROUNDS;
+  const out = plans.map((p) => {
+    if (!bad(p.lastResult) && !bad(p.bestResult)) return p;
+    changed = true;
+    const next = { ...p };
+    if (bad(p.lastResult)) delete next.lastResult;
+    if (bad(p.bestResult)) delete next.bestResult;
+    return next;
+  });
+  return { plans: out, changed };
+}
+
 function read(): WorkoutPlan[] {
   if (cache) return cache;
   try {
@@ -189,11 +212,12 @@ function read(): WorkoutPlan[] {
     const seeded: string[] = seededRaw ? JSON.parse(seededRaw) : raw ? ORIGINAL_SEEDS : [];
     const defaults = defaultPlans();
     const missing = defaults.filter((p) => !seeded.includes(p.id));
-    const plans = raw ? (JSON.parse(raw) as WorkoutPlan[]) : [];
+    const parsed = raw ? (JSON.parse(raw) as WorkoutPlan[]) : [];
+    const { plans, changed } = sanitizePlans(parsed);
     cache = [...plans, ...missing];
-    if (missing.length) {
+    if (missing.length || changed) {
       window.localStorage.setItem(KEY, JSON.stringify(cache));
-      window.localStorage.setItem(SEEDED_KEY, JSON.stringify(defaults.map((p) => p.id)));
+      if (missing.length) window.localStorage.setItem(SEEDED_KEY, JSON.stringify(defaults.map((p) => p.id)));
     }
   } catch {
     cache = defaultPlans();
@@ -264,22 +288,6 @@ export function duplicatePlan(id: string) {
     items: src.items.map((i) => ({ ...i, id: uid() })),
   };
   write([...read(), copy]);
-}
-
-export function markCompleted(id: string, result?: Omit<AmrapResult, "at">) {
-  const at = Date.now();
-  write(
-    read().map((p) => {
-      if (p.id !== id) return p;
-      const next: WorkoutPlan = { ...p, lastCompletedAt: at, timesCompleted: (p.timesCompleted ?? 0) + 1 };
-      if (result) {
-        const r = { ...result, at };
-        next.lastResult = r;
-        if (better(r, p.bestResult)) next.bestResult = r;
-      }
-      return next;
-    }),
-  );
 }
 
 export function formatDuration(totalSeconds: number): string {
