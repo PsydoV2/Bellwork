@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -12,6 +13,9 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// self-hosted analytics (webstats.sfalter.de), loaded on every page
+const WEBSTATS_WEBSITE_ID = "8279bc10-5acc-4337-b0f7-680c3e7ca416";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -53,7 +57,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Script
+          src="https://webstats.sfalter.de/recorder.js"
+          data-website-id={WEBSTATS_WEBSITE_ID}
+          strategy="afterInteractive"
+        />
+        <Script
+          src="https://webstats.sfalter.de/script.js"
+          data-website-id={WEBSTATS_WEBSITE_ID}
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   );
 }
